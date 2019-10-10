@@ -1,0 +1,29 @@
+## To kill all containers
+docker kill $(docker ps -q)
+
+
+## To start spark, go into the driectory and then -
+
+docker-compose up -d 
+
+## To start Hbase, got to the directory
+docker-compose -f docker-compose-distributed-local.yml up -d
+
+
+## To go into a container
+docker exec -it <container_name> bash
+
+## Get hbase into a usable state, go inside hbase-master container and then
+hbase-daemon.sh restart thrift
+
+
+## Submit spark job
+./spark/bin/spark-submit --master spark://0.0.0.0:7077 wikipedia-recommender/main.py
+./spark/bin/spark-submit --master  spark://0.0.0.0:7077 --deploy-mode client wikipedia-recommender/main.py
+
+## copy data from machine to container
+docker cp -a  wikipedia-recommender <spark_container>:/
+
+
+
+
