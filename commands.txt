@@ -17,7 +17,16 @@ docker exec -it <container_name> bash
 hbase-daemon.sh restart thrift
 
 
-## Submit spark job
+## start spark on local - Download and then:
+./spark-2.4.4-bin-hadoop2.7/sbin/start-master.sh
+./spark-2.4.4-bin-hadoop2.7/sbin/start-slave.sh 0.0.0.0:7077
+
+
+## Submit spark job on local machine
+ ./spark-2.4.4-bin-hadoop2.7/bin/spark-submit --driver-memory 5g --executor-memory 6g --master spark://0.0.0.0:7077 /Users/anchit/Google\ Drive\ File\ Stream/My\ Drive/Courses/Fall\ 2019/Big\ Data/wikipedia-recommender/main.py
+
+
+## Submit spark job(Docker/obsolete)
 ./spark/bin/spark-submit --master spark://0.0.0.0:7077 wikipedia-recommender/main.py
 ./spark/bin/spark-submit --master  spark://0.0.0.0:7077 --deploy-mode client wikipedia-recommender/main.py
 
