@@ -16,6 +16,8 @@ docker exec -it <container_name> bash
 ## Get hbase into a usable state, go inside hbase-master container and then
 hbase-daemon.sh restart thrift
 
+## Create table in hbase shell
+create 'articles', 'user_cf', 'article_cf', 'cf1'
 
 ## start spark on local - Download and then:
 ./spark-2.4.4-bin-hadoop2.7/sbin/start-master.sh
