@@ -63,7 +63,7 @@ def parse_xml(x):
     return {'id':id,'username':username,'text':text,'vec':vec}
 
 
-def write_hbase(x):
+def write_hbase(it):
     
     global content_loc
     
@@ -71,43 +71,54 @@ def write_hbase(x):
     global article_pref
     
     
-    if x != None:
-        print('key')
-        print(x['id'])
-        id=x['id']
-        content=x['text']
-        vec=x['vec']
+    for x in it:
+        if x != None:
+            print('key')
+            print(x['id'])
+            id=x['id']
+            content=x['text']
+            vec=x['vec'].copy()
 
-        connection = happybase.Connection('0.0.0.0', port=9090)
-        table = connection.table(table_name)
+            connection = happybase.Connection('0.0.0.0', port=9090)
+            table = connection.table(table_name)
         
-        #Fetch row from table
-        row=table.row(article_pref+id)
+            #Fetch row from table
+            row=table.row(article_pref+id)
         
-        #Append contributions
-        if content_loc in row:
-            content=row[content_loc]+content
+            #Append contributions
+            if content_loc in row:
+                content=row[content_loc]+content
         
-        # Put full content
-        table.put(article_pref+id,{content_loc:content})
+            # Put full content
+            table.put(article_pref+id,{content_loc:content})
 
-        # Put article vector
-        for word in vec:
-            key=article_family+':'+word
-            if key in row:
-                vec[word]=vec[word]+int(row[key])
+            # Put article vector
+            for word in vec:
+                key=article_family+':'+word
+                if key in row:
+                    vec[word]=vec[word]+int(row[key])
 
-    
-        for word in vec:
-            table.put(article_pref+id,{article_family+':'+word:str(vec[word])})
+            for word in vec:
+                table.put(article_pref+id,{article_family+':'+word:str(vec[word])})
+
+        
+            #Write user vector
+            vec=x['vec'].copy()
+            for word in vec:
+                key=user_family+':'+word
+                if key in row:
+                    vec[word]=vec[word]+int(row[key])
+            
+            for word in vec:
+                table.put(article_pref+id,{article_family+':'+word:str(vec[word])})
 
 
 
 ## call and run
 file_rdds=sc.newAPIHadoopFile(files, "org.apache.hadoop.mapreduce.lib.input.TextInputFormat",
                     "org.apache.hadoop.io.LongWritable", "org.apache.hadoop.io.Text",
-                    conf={"textinputformat.record.delimiter": "</page>"})
+                    conf={"textinputformat.record.delimiter": "</page>"})\
 .map(split_str)\
 .map(parse_xml)\
-.foreach(write_hbase)
+.foreachPartition(write_hbase)
 
