@@ -81,26 +81,32 @@ def write_hbase(x):
         connection = happybase.Connection('0.0.0.0', port=9090)
         table = connection.table(table_name)
         
+        #Fetch row from table
+        row=table.row(article_pref+id)
+        
+        #Append contributions
+        if content_loc in row:
+            content=row[content_loc]+content
+        
         # Put full content
         table.put(article_pref+id,{content_loc:content})
 
         # Put article vector
-        row=table.row(article_pref+id,columns=[article_family])
-        
-        if key,val in row:
-            word=key[key.find(article_family+':')+1]
-            if word in vec:
-                vec[word]=vec[word]+int(val)
+        for word in vec:
+            key=article_family+':'+word
+            if key in row:
+                vec[word]=vec[word]+int(row[key])
 
     
         for word in vec:
-            table.put(article_pref+id,{article_family+':'+word:vec[word]})
+            table.put(article_pref+id,{article_family+':'+word:str(vec[word])})
+
 
 
 ## call and run
 file_rdds=sc.newAPIHadoopFile(files, "org.apache.hadoop.mapreduce.lib.input.TextInputFormat",
                     "org.apache.hadoop.io.LongWritable", "org.apache.hadoop.io.Text",
-                    conf={"textinputformat.record.delimiter": "</page>"})\
+                    conf={"textinputformat.record.delimiter": "</page>"})
 .map(split_str)\
 .map(parse_xml)\
 .foreach(write_hbase)

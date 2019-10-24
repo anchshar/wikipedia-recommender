@@ -8,7 +8,7 @@ table = connection.table('articles')
 
 #table.put(b'test-key3',{b'cf1:col':b'bam!'})
 
-rows = table.rows(['id11712id'])
+rows = table.rows(['article12'],columns=['article_cf'])
 for key, data in rows:
     print(key, data)
 
