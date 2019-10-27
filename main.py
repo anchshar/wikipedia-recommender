@@ -15,8 +15,9 @@ user_family='user_cf'
 user_pref='username_'
 
 article_family='article_cf'
-article_pref='article'
+article_pref='article_'
 
+count_loc='cf1:count'
 content_loc='cf1:content'
 
 
@@ -95,38 +96,56 @@ def write_hbase(x):
         if content_loc in row:
             content=row[content_loc]+' '+content
         
+        #Calculate contrib count for article
+        count=1
+        if count_loc in row:
+            count=str(count+int(row[count_loc]))
+        else:
+            count=str(count)
+        
         # Aggregate article vector
         for word in vec:
             key=article_family+':'+word
             if key in row:
                 vec[word]=vec[word]+int(row[key])
-
+    
         #Copy to new vec
         temp={}
         for word in vec:
             temp[article_family+':'+word]=str(vec[word])
         vec=temp
 
-        # Put article vector + content
+        
+        # Put article vector + content + count
         vec[content_loc]=content
+        vec[count_loc]=count
+        
         table.put(article_pref+id,vec)
 
 
         #Fetch user row from table
         row=table.row(user_pref+username)
 
-        #Write user vector
+        #Aggregate user vector
         vec=x['vec'].copy()
         for word in vec:
             key=user_family+':'+word
             if key in row:
                 vec[word]=vec[word]+int(row[key])
 
+        count=1
+        if count_loc in row:
+            count=str(count+int(row[count_loc]))
+        else:
+            count=str(count)
+
+        #write user vector +count
         temp={}
         for word in vec:
             temp[user_family+':'+word]=str(vec[word])
         vec=temp
-        
+        vec[count_loc]=count
+
         table.put(user_pref+username,vec)
 
 
