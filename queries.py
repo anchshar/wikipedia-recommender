@@ -1,47 +1,157 @@
-#queries to retrieve data for answering our BQ's
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 28 22:31:03 2019
 
-import pandas as pd
+@author: anchit
+"""
+
 import happybase
+import math
 
+connection = happybase.Connection('0.0.0.0', port=9090)
+table = connection.table('articles')
 
-#connection = happybase.Connection('0.0.0.0', port=9090)
-#table = connection.table('articles')
+user_family='user_cf'
+user_pref='username_'
 
-# list of subset of article ids
-article_ids = []
+article_family='article_cf'
+article_pref='article_'
 
-# list of subset of user ids
-user_ids = []
-
-print(articles_ids)
-print(users_ids)
-
-# retrieving data for all articles in article list as dictionary
-articles_info = dict(table.rows(article_ids))
-art_df = pd.DataFrame.from_dict(art, orient = "index", columns = ["values"]) # would require change
-
-# retrieving data for all users in user list
-users_info = dict(table.rows(user_ids))
-art_df = pd.DataFrame.from_dict(art, orient = "index", columns = ["values"]) # would require change
-
-# easy BQ's
-
-#1 identify users that have contributed to a particular article, say article254
-row_1 = table.row(b'article254', columns=[b'users_cf'])
-
-#2 identify the number of articles a user has contributed to, say user5
-row_2 = table.row(b'user5', columns=[b'article_cf'])
-for key,data in row_2:
-    for k,v in data.items():
-    print (k, len(list(filter(None, v))))
-
-#3 ranking - Aviral, Hunter 
-# consider you have any data frame and do a ranking for articles and users - we can modify that accordingly
-
-#4 other business questions
-
-#5 network - Shreya, tomorrow's meeting
+cf1='cf1'
+count_loc=cf1+':count'
+content_loc=cf1+':content'
 
 
 
+user_ids = ['Monkbot',\
+               'TomReding',\
+               'BrownHairedGirl',\
+               'CeliaHomeford',\
+               'InternetArchiveBot',\
+               'Chess',\
+               'Theoldkinderhook',\
+               'TreyHarris',\
+               'GraemeBartlett',\
+               'Serols',\
+               'Shellwood',\
+               'PedjaNbg',\
+               'Jeronimo',\
+               'CAPTAINRAJU',\
+               'Carlossuarez46']
 
+user_ids=[user_pref+x for x in user_ids]
+
+
+article_ids = ['article_5310', 'article_4173', 'article_3817',\
+               'article_2279', 'article_2275', 'article_2273',\
+               'article_2269', 'article_2264','article_2262',\
+               'article_2302', 'article_963', 'article_958',\
+               'article_1991','article_1988', 'article_1986',\
+               'article_1985', 'article_1984', 'article_1979']
+
+test_user=user_ids[2]
+
+'''
+get articles that these users contributed to
+data=dict(table.rows(user_ids))
+article_ids=[]
+for key in data:
+    for col in data[key]:
+        if str(col).find('article_')>=0:
+            article_ids.append(str(col))
+print(len(set(article_ids)))
+'''
+
+print('Reading Hbase data')
+rows=dict(table.rows(user_ids+article_ids))
+
+def get_article_vec(d):
+    global article_family
+    vec={}
+    for key in d:
+        k=str(key)
+        if k.find(article_family)>=0:
+            vec[ k[k.find(article_family)+len(article_family)+1:] ]=int(d[key])
+    #print(vec)
+    return vec
+
+
+def get_user_vec(d):
+    global user_family
+    vec={}
+    for key in d:
+        k=str(key)
+        if k.find(user_family)>=0:
+            vec[ k[k.find(user_family)+len(user_family)+1:] ]=int(d[key])
+    #print(vec)
+    return vec
+    
+def compute_sim(v1,v2):
+    sim=0
+    s1=s2=0
+    
+    for key in v1:
+        val=int(v1[key])
+        s1=s1+pow(val,2)
+        if key in v2:
+            sim = sim + val*int(v2[key])
+            
+    for key in v2:
+        val=int(v2[key])
+        s2=s2+pow(val,2)
+    
+    return sim/math.sqrt(s1*s2)
+        
+
+print('\n\n\n')
+print('Username rowkey : ' + test_user)
+print('==========================================\n\n\n')
+
+
+print('BQ1: Articles user has contributed to : ')
+print('==========================================')
+
+for col in rows[test_user.encode()]:
+    i=str(col).find('article_')
+    if i>=0:
+        art_id=str(col)[i:]
+        art_id=art_id
+        print(art_id)
+
+
+print('\n\n\n')
+
+
+print('Computing article similarites..... ' )
+print('==========================================')
+best_article=''
+max_sim=0
+for x in article_ids:
+   user_vec=get_user_vec(rows[test_user.encode()])
+   article_vec=get_article_vec(rows[x.encode()])
+   sim=compute_sim(user_vec,article_vec)
+   if sim>=max_sim:
+       best_article=x
+       max_sim=sim
+   print(sim)
+print('\n\n\n')
+
+
+print('BQ2: Article recommended :' )
+print('==========================================')
+print('Title:')
+print(rows[best_article.encode()][b'cf1:title'])
+print('\n\n')
+print(rows[best_article.encode()][b'cf1:content'])
+print('\n\n\n')
+
+
+print('BQ3: Other users who have contributed to this article:')
+print('==========================================')
+for col in rows[best_article.encode()]:
+    i=str(col).find('username_')
+    if i>=0:
+        print(str(col)[i:])
+
+print('\n\n\n')

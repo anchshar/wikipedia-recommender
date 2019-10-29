@@ -18,6 +18,7 @@ article_family='article_cf'
 article_pref='article_'
 
 cf1='cf1'
+title_col='title'
 count_loc=cf1+':count'
 content_loc=cf1+':content'
 
@@ -30,7 +31,7 @@ def split_str(x):
 
 
 def parse_xml(x):
-    ret=None
+    
     try:
         root=ET.fromstring(x)
     except:
@@ -55,8 +56,20 @@ def parse_xml(x):
     text=root.findall('.//text')
     text=[ET.tostring(t).decode() for t in text]
     text=' '.join(text)
+    
+    title=root.findall('.//title')
+    if len(title)==0:
+        title=''
+    else:
+        title=title[0]
+        title=ET.tostring(title).decode()
+        title=title[title.find('title>')+6:]
+        title=title[0:title.find('</title')]
+    
 
     words=re.split(r'\s+',text)
+    words=[''.join(e for e in word if e.isalnum()) for word in words]
+    
     vec={}
     for word in words:
         if word in vec:
@@ -64,10 +77,8 @@ def parse_xml(x):
         else:
             vec[word]=1
 
-    words=[''.join(e for e in word if e.isalnum()) for word in words]
-
     text=' '.join(words)
-    return {'id':id,'username':username,'text':text,'vec':vec}
+    return {'id':id,'username':username,'text':text,'vec':vec,'title':title}
 
 
 def write_hbase(x):
@@ -81,14 +92,16 @@ def write_hbase(x):
     global content_loc
     global table_name
     global cf1
+    global title_col
     
     if x != None:
         print('keys:')
-        print(x['id'] + ' ' + x['username'])
+        print(x['id'] + ' ' + x['username'] + ' ' +x['title'])
         id=x['id']
         content=x['text']
         vec=x['vec'].copy()
         username=x['username']
+        title=x['title']
 
         connection = happybase.Connection('0.0.0.0', port=9090)
         table = connection.table(table_name)
@@ -124,6 +137,7 @@ def write_hbase(x):
         vec[content_loc]=content
         vec[count_loc]=count
         vec[cf1+':'+user_pref+username]='true'
+        vec[cf1+':'+title_col]=title
         
         table.put(article_pref+id,vec)
 
