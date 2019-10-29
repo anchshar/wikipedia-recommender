@@ -112,15 +112,22 @@ print('==========================================\n\n\n')
 print('BQ1: Articles user has contributed to : ')
 print('==========================================')
 
+ids=[]
 for col in rows[test_user.encode()]:
     i=str(col).find('article_')
     if i>=0:
         art_id=str(col)[i:]
-        art_id=art_id
-        print(art_id)
-
+        art_id=art_id[:-1]
+        ids.append(art_id.encode())
+        print(art_id.encode())
+    
+print('\n\nGetting titles:\n\n')
+temp=dict(table.rows(ids,columns=[b'cf1:title']))
+for t in temp:
+    print(str(t) + ' ' + str(temp[t][b'cf1:title']))
 
 print('\n\n\n')
+
 
 
 print('Computing article similarites..... ' )
