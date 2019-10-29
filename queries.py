@@ -160,5 +160,30 @@ for col in rows[best_article.encode()]:
     i=str(col).find('username_')
     if i>=0:
         print(str(col)[i:])
+        
+print('\n\n\n')
+
+
+print('BQ4: Most active users:')
+print('==========================================')
+
+cnts={}
+def count_comp(x):
+    global rows
+    global cnts
+    cnt=0
+    for col in rows[x.encode()]:
+        i=str(col).find('article_')
+        if i>=0:
+            cnt=cnt+1
+    cnts[x]=cnt
+    return cnt,x
+
+user_ids=sorted(user_ids,key=count_comp)
+user_ids.reverse()
+for x in user_ids[0:3]:
+    print(x + '   ' + str(cnts[x]))
+
 
 print('\n\n\n')
+
