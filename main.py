@@ -17,8 +17,9 @@ user_pref='username_'
 article_family='article_cf'
 article_pref='article_'
 
-count_loc='cf1:count'
-content_loc='cf1:content'
+cf1='cf1'
+count_loc=cf1+':count'
+content_loc=cf1+':content'
 
 
 ## Util functions
@@ -43,11 +44,13 @@ def parse_xml(x):
 
     username=root.findall('.//username')
     if len(username)==0:
+        print('ERROR: '+ str(x))
         return None
     username=username[0]
     username=ET.tostring(username).decode()
-    #username=''.join(e for e in id if e.isalnum())
-    username=username[8:len(username)-8]
+    username=username[username.find('username>')+9:]
+    username=username[0:username.find('</username')]
+    username=''.join(e for e in username if e.isalnum())
 
     text=root.findall('.//text')
     text=[ET.tostring(t).decode() for t in text]
@@ -77,10 +80,11 @@ def write_hbase(x):
     global user_pref
     global content_loc
     global table_name
+    global cf1
     
     if x != None:
-        print('key')
-        print(x['id'])
+        print('keys:')
+        print(x['id'] + ' ' + x['username'])
         id=x['id']
         content=x['text']
         vec=x['vec'].copy()
@@ -116,9 +120,10 @@ def write_hbase(x):
         vec=temp
 
         
-        # Put article vector + content + count
+        # Put article vector + content + count + contributor
         vec[content_loc]=content
         vec[count_loc]=count
+        vec[cf1+':'+user_pref+username]='true'
         
         table.put(article_pref+id,vec)
 
@@ -145,6 +150,7 @@ def write_hbase(x):
             temp[user_family+':'+word]=str(vec[word])
         vec=temp
         vec[count_loc]=count
+        vec[cf1+':'+article_pref+id]='true'
 
         table.put(user_pref+username,vec)
 
