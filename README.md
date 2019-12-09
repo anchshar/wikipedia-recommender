@@ -1,2 +1,2 @@
 # wikipedia-recommender
-micro-badgers repo
+Wikipedia article recommender using Spark and Hbase
